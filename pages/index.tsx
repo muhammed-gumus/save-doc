@@ -1,174 +1,155 @@
+import { useState, useEffect } from "react";
+import { ObjectId } from "mongodb";
 import Image from "next/image";
-import Link from "next/link";
-import { Inter } from "next/font/google";
-import client from "@/lib/mongodb";
-import type { InferGetServerSidePropsType, GetServerSideProps } from "next";
 
-type ConnectionStatus = {
-  isConnected: boolean;
-};
+interface FileData {
+  _id: ObjectId;
+  filename: string;
+  uploadDate: Date | string; // Date or string
+  metadata?: { customFilename?: string };
+}
 
-const inter = Inter({ subsets: ["latin"] });
+export default function CatalogPage() {
+  const [files, setFiles] = useState<FileData[]>([]);
+  const [sortOrder, setSortOrder] = useState<string>("newest");
+  const [selectedCustomFilename, setSelectedCustomFilename] =
+    useState<string>("");
 
-export const getServerSideProps: GetServerSideProps<
-  ConnectionStatus
-> = async () => {
-  try {
-    await client.connect(); // `await client.connect()` will use the default database passed in the MONGODB_URI
-    return {
-      props: { isConnected: true },
-    };
-  } catch (e) {
-    console.error(e);
-    return {
-      props: { isConnected: false },
-    };
-  }
-};
+  const fetchFiles = async () => {
+    try {
+      const response = await fetch("/api/getData");
+      const data = await response.json();
+      setFiles(data);
+    } catch (error) {
+      console.error("Dosya listesi alınamadı:", error);
+    }
+  };
 
-export default function Home({
-  isConnected,
-}: InferGetServerSidePropsType<typeof getServerSideProps>) {
+  useEffect(() => {
+    fetchFiles();
+  }, []);
+
+  const formatFilename = (filename: string) => {
+    const index = filename.indexOf("_");
+    return index !== -1 ? filename.slice(index + 1) : filename;
+  };
+
+  const isPDF = (filename: string) => /\.(pdf)$/.test(filename.toLowerCase());
+
+  // Filter and sort files
+  const filteredFiles = files
+    .filter(
+      (file) =>
+        !selectedCustomFilename ||
+        file.metadata?.customFilename === selectedCustomFilename
+    )
+    .sort((a, b) => {
+      const aUploadDate =
+        typeof a.uploadDate === "string"
+          ? new Date(a.uploadDate)
+          : a.uploadDate;
+      const bUploadDate =
+        typeof b.uploadDate === "string"
+          ? new Date(b.uploadDate)
+          : b.uploadDate;
+
+      if (sortOrder === "newest") {
+        return bUploadDate.getTime() - aUploadDate.getTime();
+      } else if (sortOrder === "oldest") {
+        return aUploadDate.getTime() - bUploadDate.getTime();
+      } else if (sortOrder === "a-z") {
+        return (
+          a.metadata?.customFilename?.localeCompare(
+            b.metadata?.customFilename || ""
+          ) || 0
+        );
+      }
+      return 0;
+    });
+
+  // Get custom filenames
+  const customFilenames = Array.from(
+    new Set(files.map((file) => file.metadata?.customFilename).filter(Boolean))
+  );
+
   return (
-    <main
-      className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}
-    >
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Pages Router: Get started by editing&nbsp;
-          <code className="font-mono font-bold">pages/index.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-5xl mx-auto">
+        <div className="w-full flex mb-6 text-center">
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            className="mr-4 px-2 py-2 border rounded"
           >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+            <option value="newest">Tarihe göre sıralama (Yeni - Eski)</option>
+            <option value="oldest">Tarihe göre sıralama (Eski - Yeni)</option>
+            <option value="a-z">Harf sırasına göre (A'dan Z'ye)</option>
+          </select>
 
-      <div className="flex flex-col place-items-center gap-12">
-        <div className="relative flex place-items-center gap-6 before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-          <Image
-            className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-            src="/next.svg"
-            alt="Next.js Logo"
-            width={180}
-            height={37}
-            priority
-          />
-          {" + "}
-          <Image
-            className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] saturate-0 brightness-0 dark:saturate-100 dark:brightness-100"
-            src="/mongodb.svg"
-            alt="MongoDB Logo"
-            width={180}
-            height={37}
-            priority
-          />
+          <select
+            value={selectedCustomFilename}
+            onChange={(e) => setSelectedCustomFilename(e.target.value)}
+            className="p-2 border rounded"
+          >
+            <option value="">Tür</option>
+            {customFilenames.map((filename, index) => (
+              <option key={index} value={filename}>
+                {filename}
+              </option>
+            ))}
+          </select>
         </div>
-        {isConnected ? (
-          <h2 className="text-lg text-green-500">
-            You are connected to MongoDB!
-          </h2>
+
+        {filteredFiles.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+            {filteredFiles.map((file) => (
+              <div
+                key={file._id.toString()}
+                className="bg-white p-4 rounded-lg overflow-hidden shadow-md transition-transform transform hover:scale-105"
+              >
+                <div>
+                  <h2 className="text-xl text-red-700">
+                    {file.metadata?.customFilename}
+                  </h2>
+                </div>
+
+                {/* PDF Önizlemesi */}
+                {isPDF(file.filename) ? (
+                  <iframe
+                    src={`/api/getFile?id=${file._id.toString()}#toolbar=0`}
+                    className="w-full md:h-80 border-none mt-4"
+                    frameBorder="0"
+                    style={{ border: "none" }}
+                  />
+                ) : (
+                  <Image
+                    src={"/images/empty-img.png"} // Placeholder image path
+                    alt="File not PDF"
+                    width={200}
+                    height={200}
+                    className="w-full md:h-80 object-cover mt-4" // Keep dimensions similar to the iframe
+                  />
+                )}
+
+                <div className="pt-4">
+                  <a
+                    href={`/api/getFile?id=${file._id.toString()}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block bg-red-700 text-white text-center px-4 py-2 rounded hover:bg-red-800 transition"
+                  >
+                    Dosyayı Aç
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
-          <h2 className="text-lg text-red-500">
-            You are NOT connected to MongoDB. Check the <code>README.md</code>{" "}
-            for instructions.
-          </h2>
+          <p className="text-gray-600 text-center mt-8">
+            Henüz yüklenen dosya yok.
+          </p>
         )}
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          This page uses the&nbsp;<strong>Pages Router</strong>. Check out the
-          App Router version here:&nbsp;
-          <Link
-            href="/app-demo"
-            className="underline transition-colors ease-in-out hover:text-green-500"
-          >
-            <code>app/app-demo/page.tsx</code>
-          </Link>
-        </p>
       </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app&database=mongodb"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js + MongoDB.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-mongodb&project-name=nextjs-mongodb&repository-name=nextjs-mongodb&integration-ids=oac_jnzmjqM10gllKmSrG0SGrHOH"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </div>
   );
 }
