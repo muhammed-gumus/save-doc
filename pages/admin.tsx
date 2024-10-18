@@ -128,7 +128,12 @@ export default function Admin() {
             <span className="mt-2 text-red-700 font-bold text-base leading-normal">
               {selectedFile ? selectedFile.name : "Dosya Seç"}
             </span>
-            <input type="file" accept="application/pdf" onChange={handleFileChange} className="hidden" />
+            <input
+              type="file"
+              accept=".docx, .xlsx, .pdf"
+              onChange={handleFileChange}
+              className="hidden"
+            />
           </label>
 
           <button
@@ -169,7 +174,7 @@ export default function Admin() {
                   </span>
                 </div>
                 <a
-                  href={`/api/getFile?id=${file._id.toString()}`}
+                  href={`/api/downloadFile?id=${file._id.toString()}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-red-700 text-white px-6 py-1 rounded hover:bg-black hover:text-white transition duration-300 text-sm sm:text-base"

@@ -74,7 +74,7 @@ export default function CatalogPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto px-4">
         <div className="w-full flex mb-6 text-center">
           <select
             value={sortOrder}
@@ -101,23 +101,24 @@ export default function CatalogPage() {
         </div>
 
         {filteredFiles.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {filteredFiles.map((file) => (
               <div
                 key={file._id.toString()}
                 className="bg-white p-4 rounded-lg overflow-hidden shadow-md transition-transform transform hover:scale-105"
               >
                 <div>
-                  <h2 className="text-xl text-red-700">
+                  <h2 className="text-xl font-bold text-gray-700">
                     {file.metadata?.customFilename}
                   </h2>
                 </div>
 
-                {/* PDF Önizlemesi */}
+                <div className="border mt-2">
+                  {/* PDF Önizlemesi */}
                 {isPDF(file.filename) ? (
                   <iframe
                     src={`/api/getFile?id=${file._id.toString()}#toolbar=0`}
-                    className="w-full md:h-80 border-none mt-4"
+                    className="w-full md:h-80 border-none"
                     frameBorder="0"
                     style={{ border: "none" }}
                   />
@@ -127,13 +128,14 @@ export default function CatalogPage() {
                     alt="File not PDF"
                     width={200}
                     height={200}
-                    className="w-full md:h-80 object-cover mt-4" // Keep dimensions similar to the iframe
+                    className="w-full md:h-80 object-cover" // Keep dimensions similar to the iframe
                   />
                 )}
+                </div>
 
                 <div className="pt-4">
                   <a
-                    href={`/api/getFile?id=${file._id.toString()}`}
+                    href={`/api/downloadFile?id=${file._id.toString()}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block bg-red-700 text-white text-center px-4 py-2 rounded hover:bg-red-800 transition"

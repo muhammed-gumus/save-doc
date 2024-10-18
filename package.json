@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "formidable": "^3.5.1",
+    "mime-types": "^2.1.35",
     "mongodb": "^6.5.0",
     "next": "latest",
     "react": "^18",
@@ -14,6 +15,7 @@
   },
   "devDependencies": {
     "@types/formidable": "^3.4.5",
+    "@types/mime-types": "^2.1.4",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
